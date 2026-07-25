@@ -23,7 +23,7 @@ import cors from 'cors'
 const app = express()
 app.use(express.json()) // Middleware para leer el cuerpo de los POST
 
-// Recuerda el middleware que hace falta para leer el cuerpo de los POST,
+
 // y configura CORS (lo vas a necesitar para el video).
 app.use(cors({methods: ['GET', 'POST', 'PUT', 'DELETE' ]}))    
 app.get('/', (req, res) => {
@@ -46,11 +46,18 @@ app.get('/api/selecciones', (req, res) => {
 //   GET  /api/selecciones/copas               solo las que ganaron alguna copa
 // la ruta específica debe ir antes de la ruta dinámica /api/selecciones/:id para que no se confunda con un id.
 app.get('/api/selecciones/copas', (req, res) => {
-    const seleccionesConCopas = selecciones.filter(s => s.copas.length > 0)
-    console.log(seleccionesConCopas)
-    return res.json(seleccionesConCopas)
+  // 1. Filtramos solo las selecciones que tienen copas
+  const seleccionesConCopas = selecciones.filter(s => s.copas && s.copas.length > 0);
+
+  // 2. Mapeamos para devolver solo el nombre/país y el array de copas
+  const resultado = seleccionesConCopas.map(s => ({
+    pais: s.nombre,        
+    copas: s.copas,
+    
+  }));
+
+  res.json(resultado);
 })
-//
 
 
 //   GET  /api/selecciones/:id                 una, o 404
@@ -67,37 +74,44 @@ app.get('/api/selecciones/:id', (req, res) => {
 
 //   ── Con lógica ⭐ ──────────────────────────────────────────────────────────
 //   GET  /api/selecciones?continente=Europa   filtra por continente  (anidada)
-app.get('/api/continente/:nombre', (req, res) => {
-    const continente = req.params.nombre
-    const continenteObj = continentes.find(c => c.nombre.toLowerCase() === continente.toLowerCase())
+// Función auxiliar para quitar acentos y pasar a minúsculas
 
-    if (!continenteObj) {
-        res.status(404).json({ error: 'Continente no encontrado' })
-        return
-    }
-    // Filtra las selecciones por el continente encontrado
-    const seleccionesFiltradas = selecciones.filter(s => s.continenteId === continenteObj.id)
-    res.json(seleccionesFiltradas)
-})   
+const normalizarTexto = (texto) => {
+  if (!texto) return "";
+  return decodeURIComponent(texto)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+};
+
+app.get('/api/continente/:nombre', (req, res) => {
+  const continenteParam = normalizarTexto(req.params.nombre);
+aq
+  // Compara quitando acentos a ambos lados
+  const continenteObj = continentes.find(c => 
+    normalizarTexto(c.nombre) === continenteParam
+  );
+
+  if (!continenteObj) {
+    return res.status(404).json({ error: 'Continente no encontrado' });
+  }
+
+  // Filtra las selecciones
+  const seleccionesFiltradas = selecciones.filter(
+    s => s.continenteId === continenteObj.id
+  );
+
+  res.json(seleccionesFiltradas);
+});
   
 //   GET  /api/selecciones?campeon=true        solo las que ganaron alguna copa
-// no funciona porque la ruta /api/selecciones/:id se ejecuta primero, por eso se hace con query param
 
-app.get('/api/selecciones', (req, res) => {
-    console.log("requerimiento:", req.query)
-    const campeon = req.query.campeon === 'true'
-    if (campeon) {
-        const seleccionesCampeonas = selecciones.filter(s => s.copas.length > 0)
-        console.log(seleccionesCampeonas)
-        return res.json(seleccionesCampeonas)
-        
-    }  else {
-        const seleccionesNoCampeonas = selecciones.filter(s => s.copas.length === 0)
-        console.log(seleccionesNoCampeonas)
-        return res.json(seleccionesNoCampeonas)
-    }
-    
-})
+
+
+
+
+
+
 
 //   GET  /api/copas                           todas las copas, en una lista plana
 app.get('/api/copas', (req, res) => {
@@ -123,8 +137,11 @@ app.get('/api/copas/:nombre', (req, res) => {
 app.get('/api/estadisticas', (req, res) => {
     // Lógica para calcular y devolver las estadísticas del torneo
     //ordenar por ranking,
-    const estadisticas = [...selecciones].sort((a, b) => b.fifaRanking - a.fifaRanking  )
-    return res.json(estadisticas)
+    const estadisticas = [...selecciones].sort((a, b) => a.fifaRanking - b.fifaRanking  )
+    res.json ({mensaje : "selecciones ordenadas por ranking de la FiFa",
+               selecciones : estadisticas
+    })
+               
 
 
 })
@@ -135,6 +152,9 @@ app.get('/api/estadisticas', (req, res) => {
 app.post('/api/worldcup/2026/semifinals/:n', (req, res) => {
     const n = parseInt(req.params.n)
     
+    //si n es mayor a igual a  1 y menor igual a 
+    if (isNaN(n)||n<1 || n>4){return res.status(400).json({error:"el parametro debe ser 1,2,3,4"})}
+    
     partidos.semifinales[n - 1] = req.body
     res.status(201).json({ message: `Semifinal ${n} registrada` })
     
@@ -142,18 +162,46 @@ app.post('/api/worldcup/2026/semifinals/:n', (req, res) => {
 
 //   GET  /api/worldcup/2026/semifinals/:n     el resultado de la semifinal n
 app.get('/api/worldcup/2026/semifinals/:n', (req, res) => {
-    const n = parseInt(req.params.n)
-    const semifinal = partidos.semifinales[n - 1]
-    if (!semifinal) {
-        res.status(404).json({ error: `Semifinal ${n} no registrada` })
-        return
-    }if (semifinal.local.goles>semifinal.visita.goles) {
-        semifinal.ganador = semifinal.local.nombre
-    } else if (semifinal.local.goles<semifinal.visita.goles) {
-        semifinal.ganador = semifinal.visita.nombre
-    }
-    res.json(semifinal)
-})
+  const n = parseInt(req.params.n);
+
+  // 1. Obtener la semifinal guardada
+  const semifinal = partidos.semifinales[n - 1];
+
+  if (!semifinal) {
+    return res.status(404).json({ error: "Semifinal ${n} no registrada" });
+  }
+
+  // 2. Buscar las selecciones por su ID en el arreglo de datos
+  const localObj = selecciones.find(s => s.id === semifinal.local.seleccionId);
+  const visitaObj = selecciones.find(s => s.id === semifinal.visita.seleccionId);
+
+  const nombreLocal = localObj ? localObj.nombre : 'Desconocido';
+  const nombreVisita = visitaObj ? visitaObj.nombre : 'Desconocido';
+
+  // 3. Determinar el ganador
+  let ganador = 'Empate';
+  if (semifinal.local.goles > semifinal.visita.goles) {
+    ganador = nombreLocal;
+  } else if (semifinal.visita.goles > semifinal.local.goles) {
+    ganador = nombreVisita;
+  }
+
+  // 4. Retornar con el formato exacto requerido
+  res.json({
+    partido: "semifinal ${n}",
+    local: {
+      seleccion: nombreLocal,
+      goles: semifinal.local.goles
+    },
+    visita: {
+      seleccion: nombreVisita,
+      goles: semifinal.visita.goles
+    },
+    ganador: ganador
+  });
+});
+
+
 
 //muestra todas las semifinales registradas
 //   GET  /api/worldcup/2026/semifinals        las cuatro
@@ -171,17 +219,41 @@ app.post('/api/worldcup/2026/final', (req, res) => {
 
 //   GET  /api/worldcup/2026/campeon             la final, con su ganador
 app.get('/api/worldcup/2026/campeon', (req, res) => {
-    if (!partidos.final) {
-        res.status(404).json({ error: 'Final no registrada' })
-        return
-    }if (partidos.final.local.goles>partidos.final.visita.goles) {
-        partidos.final.ganador = partidos.final.local.nombre
-    } else if (partidos.final.local.goles<partidos.final.visita.goles) {
-        partidos.final.ganador = partidos.final.visita.nombre
-    }
-    res.json(partidos.final)
-})       
 
+  // 1. Obtener la final guardada
+  const final = partidos.final;
+
+  if (!final) {
+    return res.status(404).json({ error: "final no registrada" });
+  }
+// 2. Buscar las selecciones por su ID en el arreglo de datos
+  const localObj = selecciones.find(s => s.id === final.local.seleccionId);
+  const visitaObj = selecciones.find(s => s.id === final.visita.seleccionId);
+
+  const nombreLocal = localObj ? localObj.nombre : 'Desconocido';
+  const nombreVisita = visitaObj ? visitaObj.nombre : 'Desconocido';
+
+  // 3. Determinar el campeon
+  let campeon = 'Empate';
+  if (final.local.goles > final.visita.goles) {
+    campeon = nombreLocal;
+  } else if (final.visita.goles > final.local.goles) {
+    campeon= nombreVisita;
+  }
+ // 4. Retornar con el formato exacto requerido
+  res.json({
+    partido: "final ",
+    local: {
+      seleccion: nombreLocal,
+      goles: final.local.goles
+    },
+    visita: {
+      seleccion: nombreVisita,
+      goles: final.visita.goles
+    },
+    campeon: campeon
+  });
+});
 
 
     // Ojo: /semifinals/:n es UNA ruta, no cuatro.
