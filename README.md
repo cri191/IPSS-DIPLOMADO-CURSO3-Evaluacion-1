@@ -29,27 +29,29 @@ Al terminar esta evaluación, deberás ser capaz de:
 
 ---
 
-## 🚀 Cómo empezar
-
-Este repositorio es tu punto de partida. **Haz un _fork_** para tener tu propia copia (así puedes subir tus cambios), y clónala:
+## 🚀 Cómo probar el backend evaluacion 1
+Este repositorio contiene la solucion a la evaluacion 1
+para ejecutar el proyecto sigue estos pasos
+1. clónala el repositorio
 
 ```bash
-git clone https://github.com/TU-USUARIO/IPSS-DIPLOMADO-CURSO3-Evaluacion-1.git
+git clone https://github.com/cri191/IPSS-DIPLOMADO-CURSO3-Evaluacion-1.git
 cd IPSS-DIPLOMADO-CURSO3-Evaluacion-1
 ```
+2. instalar de3pendencias
+npm install
+(el proyecto tiene en package.json las dependencias cors y express ya existen. Se instalaran cuando ejecutes npm install)
 
-Instala lo que necesites (**Express no viene incluido: instálalo tú**):
-
-```bash
-npm install express
-```
 
 Y levanta tu servidor:
-
-```bash
 npm run dev
-```
 
+El servidor queda escuchando en del puerto 3000
+http://localhost:3000
+
+
+
+```bas
 ### Qué hay en el repositorio
 
 | Archivo | Qué es |
