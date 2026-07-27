@@ -310,6 +310,12 @@ Dentro del repositorio. No hace falta que incluya todas las variantes: con **una
 
 **1. Tu API funcionando (Postman).** Muestra las rutas principales respondiendo de verdad: una consulta, un filtro por continente, las copas de una selección y el registro de una semifinal. Que se vean los **códigos de estado** en pantalla.
 
+### video Explicativo
+youtube (https://youtu.be/tfD8esh8TrY)
+
+
+
+
 **2. Tus algoritmos, explicados por ti.** Abre tu código y explica **con tus palabras** las decisiones que tomaste. No describas la sintaxis: justifica el _por qué_.
 
 - ¿Por qué `flatMap` y no un `map` seguido de otra cosa?
