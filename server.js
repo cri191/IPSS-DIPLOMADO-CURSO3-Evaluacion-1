@@ -25,7 +25,7 @@ app.use(express.json()) // Middleware para leer el cuerpo de los POST
 
 
 // y configura CORS (lo vas a necesitar para el video).
-app.use(cors({methods: ['GET', 'POST', 'PUT', 'DELETE' ]}))    
+app.use(cors({methods: ['GET', 'POST']}))    
 app.get('/', (req, res) => {
     res.send('API del Mundial 2026')
 })
@@ -86,7 +86,7 @@ const normalizarTexto = (texto) => {
 
 app.get('/api/continente/:nombre', (req, res) => {
   const continenteParam = normalizarTexto(req.params.nombre);
-aq
+
   // Compara quitando acentos a ambos lados
   const continenteObj = continentes.find(c => 
     normalizarTexto(c.nombre) === continenteParam
@@ -150,11 +150,24 @@ app.get('/api/estadisticas', (req, res) => {
 //   POST /api/worldcup/2026/semifinals/:n     registra la semifinal n (1 a 4)
 
 app.post('/api/worldcup/2026/semifinals/:n', (req, res) => {
-    const n = parseInt(req.params.n)
+    const n = parseInt(req.params.n);
+    const {local,visita}= req.body;
     
     //si n es mayor a igual a  1 y menor igual a 
     if (isNaN(n)||n<1 || n>4){return res.status(400).json({error:"el parametro debe ser 1,2,3,4"})}
     
+// validar los datos del body
+if(!local || !visita ||
+  local.seleccionId === undefined ||
+  local.goles === undefined ||
+  visita.seleccionId === undefined ||
+  visita.goles === undefined
+) {
+  return res.status(400).json({
+    error:"Datos incompletos. Debe incluir local, visita y goles"
+  })
+}
+
     partidos.semifinales[n - 1] = req.body
     res.status(201).json({ message: `Semifinal ${n} registrada` })
     
@@ -266,6 +279,16 @@ app.get('/api/worldcup/2026/campeon', (req, res) => {
 //   })
 //
 // A partir de aquí, es tuyo. 🚀
+// ... tus rutas del proyecto (app.get, app.post, etc.) ...
+
+// Middleware para capturar rutas no existentes (404)
+app.use((req, res) => {
+  res.status(404).json({ 
+    error: 'Ruta no encontrada' 
+  });
+});
+
+
 
 // TODO: levanta el servidor.
 const PORT = 3000
